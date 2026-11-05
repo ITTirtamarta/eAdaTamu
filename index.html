@@ -33,7 +33,8 @@ $('go').onclick=async function(){
     var t0=performance.now(),done=false;
     var s=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}},audio:false});
     var v=$('v');v.srcObject=s;v.style.display='block';await v.play();
-    log('Kamera aktif '+v.videoWidth+'x'+v.videoHeight,'ok');
+    log('Kamera aktif '+v.videoWidth+'x'+v.videoHeight+' (buka kamera+izin: '+Math.round(performance.now()-t0)+' ms)','ok');
+    t0=performance.now(); // mulai hitung dari frame pertama: murni waktu decode+mengarahkan QR
     (async function loop(){ if(done)return;
       if(v.videoWidth){var val=await decode(v,v.videoWidth,v.videoHeight);
         if(val){done=true;log('TERBACA '+Math.round(performance.now()-t0)+' ms: '+val.slice(0,40),'ok');s.getTracks().forEach(function(t){t.stop()});return}}
