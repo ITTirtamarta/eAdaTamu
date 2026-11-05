@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>eAdaTamu PoC Scanner</title>
+<style>
+ body{font-family:system-ui,sans-serif;margin:0;padding:12px;background:#111;color:#eee}
+ button{display:block;width:100%;padding:14px;margin:8px 0;font-size:16px;border:0;border-radius:8px;background:#2a7;color:#fff}
+ video{width:100%;background:#000;border-radius:8px}
+ pre{white-space:pre-wrap;background:#222;padding:8px;border-radius:6px;font-size:12px}
+ .ok{color:#6f6}.bad{color:#f66}
+</style></head><body>
+<h3>PoC-3b: scanner halaman statis (HTTPS)</h3>
+<pre id="env"></pre>
+<button id="go">1. Mulai kamera</button>
+<video id="v" playsinline muted style="display:none"></video>
+<canvas id="c" style="display:none"></canvas>
+<button id="ping" style="background:#a74">2. Ping server Apps Script (fetch)</button>
+<pre id="out"></pre>
+<script src="jsQR.js"></script>
+<script>
+// Alamat web app Apps Script (deployment uji). Bukan rahasia; otorisasi tetap di server.
+var API_URL='https://script.google.com/macros/s/AKfycbyDU1ny0U6_esuFl2uKjcHbT6NV2M1Ff68yKmSRFruO5qhPq5o8eQCBN95sTSGW0yNU/exec';
+var $=function(i){return document.getElementById(i)};
+function log(m,c){var d=document.createElement('div');d.className=c||'';d.textContent=new Date().toLocaleTimeString()+' '+m;$('out').insertBefore(d,$('out').firstChild)}
+$('env').textContent=['UA: '+navigator.userAgent,'secureContext: '+window.isSecureContext,'dalam iframe: '+(window.top!==window.self),
+ 'BarcodeDetector: '+('BarcodeDetector' in window),'jsQR: '+(typeof jsQR)].join('\n');
+var detector=('BarcodeDetector' in window)?new BarcodeDetector({formats:['qr_code']}):null;
+async function decode(src,w,h){
+  if(detector){try{var r=await detector.detect(src);if(r.length)return r[0].rawValue}catch(e){}}
+  var c=$('c');c.width=w;c.height=h;var x=c.getContext('2d',{willReadFrequently:true});x.drawImage(src,0,0,w,h);
+  var q=jsQR(x.getImageData(0,0,w,h).data,w,h);return q?q.data:null}
+$('go').onclick=async function(){
+  try{
+    var t0=performance.now(),done=false;
+    var s=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}},audio:false});
+    var v=$('v');v.srcObject=s;v.style.display='block';await v.play();
+    log('Kamera aktif '+v.videoWidth+'x'+v.videoHeight,'ok');
+    (async function loop(){ if(done)return;
+      if(v.videoWidth){var val=await decode(v,v.videoWidth,v.videoHeight);
+        if(val){done=true;log('TERBACA '+Math.round(performance.now()-t0)+' ms: '+val.slice(0,40),'ok');s.getTracks().forEach(function(t){t.stop()});return}}
+      setTimeout(loop,150)})();
+  }catch(e){log('GAGAL kamera: '+e.name+' - '+e.message,'bad')}};
+$('ping').onclick=async function(){
+  var s=performance.now();
+  try{var r=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({action:'ping'})});
+    var j=await r.json();log('ping '+Math.round(performance.now()-s)+' ms '+JSON.stringify(j),j.success?'ok':'bad')}
+  catch(e){log('ping GAGAL: '+e.message,'bad')}};
+</script></body></html>
