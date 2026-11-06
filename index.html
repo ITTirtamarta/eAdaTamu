@@ -18,7 +18,7 @@
 <script src="jsQR.js"></script>
 <script>
 // Alamat web app Apps Script (deployment uji). Bukan rahasia; otorisasi tetap di server.
-var API_URL='https://script.google.com/macros/s/AKfycbyDU1ny0U6_esuFl2uKjcHbT6NV2M1Ff68yKmSRFruO5qhPq5o8eQCBN95sTSGW0yNU/exec';
+var API_URL='https://script.google.com/macros/s/AKfycbxIddznXFmXb3Yam1u93tvnzczgxyT0T7y2yzQHpT-bazHAKUBJ5A0r9ORjy8A5SLk/exec';
 var $=function(i){return document.getElementById(i)};
 function log(m,c){var d=document.createElement('div');d.className=c||'';d.textContent=new Date().toLocaleTimeString()+' '+m;$('out').insertBefore(d,$('out').firstChild)}
 $('env').textContent=['UA: '+navigator.userAgent,'secureContext: '+window.isSecureContext,'dalam iframe: '+(window.top!==window.self),
@@ -37,9 +37,10 @@ $('go').onclick=async function(){
     t0=performance.now(); // mulai hitung dari frame pertama: murni waktu decode+mengarahkan QR
     (async function loop(){ if(done)return;
       if(v.videoWidth){var val=await decode(v,v.videoWidth,v.videoHeight);
-        if(val){done=true;log('TERBACA '+Math.round(performance.now()-t0)+' ms: '+val.slice(0,40),'ok');s.getTracks().forEach(function(t){t.stop()});return}}
+        if(val){done=true;log('TERBACA '+Math.round(performance.now()-t0)+' ms, panjang '+val.length+', awal: '+val.slice(0,6)+'...','ok');verifyToken(val);s.getTracks().forEach(function(t){t.stop()});return}}
       setTimeout(loop,150)})();
   }catch(e){log('GAGAL kamera: '+e.name+' - '+e.message,'bad')}};
+async function verifyToken(v){var s=performance.now();try{var r=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({action:'p4.verify',payload:{token:v}})});var j=await r.json();log('verifikasi server ('+Math.round(performance.now()-s)+' ms): '+(j.success&&j.data.valid?'TOKEN SAH':'TOKEN TIDAK SAH'),j.success&&j.data.valid?'ok':'bad')}catch(e){log('verifikasi GAGAL: '+e.message,'bad')}}
 $('ping').onclick=async function(){
   var s=performance.now();
   try{var r=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({action:'ping'})});
